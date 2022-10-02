@@ -159,6 +159,14 @@ class SlidingUpPanel extends StatefulWidget {
   /// by default the Panel is open and must be swiped closed by the user.
   final PanelState defaultPanelState;
 
+  /// Allows to set the height of the body.
+  /// If it is null, it automatically sizes itself to device height.
+  final double? bodyHeight;
+
+  /// Allows to set the width of the body.
+  /// If it is null, it automatically sizes itself to device width.
+  final double? bodyWidth;
+
   SlidingUpPanel(
       {Key? key,
       this.panel,
@@ -195,6 +203,8 @@ class SlidingUpPanel extends StatefulWidget {
       this.slideDirection = SlideDirection.UP,
       this.defaultPanelState = PanelState.CLOSED,
       this.header,
+      this.bodyHeight,
+      this.bodyWidth,
       this.footer})
       : assert(panel != null || panelBuilder != null),
         assert(0 <= backdropOpacity && backdropOpacity <= 1.0),
@@ -264,8 +274,9 @@ class _SlidingUpPanelState extends State<SlidingUpPanel>
                   );
                 },
                 child: Container(
-                  height: MediaQuery.of(context).size.height,
-                  width: MediaQuery.of(context).size.width,
+                  height:
+                      widget.bodyHeight ?? MediaQuery.of(context).size.height,
+                  width: widget.bodyWidth ?? MediaQuery.of(context).size.width,
                   child: widget.body,
                 ),
               )
@@ -274,34 +285,36 @@ class _SlidingUpPanelState extends State<SlidingUpPanel>
         //the backdrop to overlay on the body
         !widget.backdropEnabled
             ? Container()
-            : GestureDetector(
-                onVerticalDragEnd: widget.backdropTapClosesPanel
-                    ? (DragEndDetails dets) {
-                        // only trigger a close if the drag is towards panel close position
-                        if ((widget.slideDirection == SlideDirection.UP
-                                    ? 1
-                                    : -1) *
-                                dets.velocity.pixelsPerSecond.dy >
-                            0) _close();
-                      }
-                    : null,
-                onTap: widget.backdropTapClosesPanel ? () => _close() : null,
-                child: AnimatedBuilder(
-                    animation: _ac,
-                    builder: (context, _) {
-                      return Container(
-                        height: MediaQuery.of(context).size.height,
-                        width: MediaQuery.of(context).size.width,
+            : ExcludeSemantics(
+                child: GestureDetector(
+                  onVerticalDragEnd: widget.backdropTapClosesPanel
+                      ? (DragEndDetails dets) {
+                          // only trigger a close if the drag is towards panel close position
+                          if ((widget.slideDirection == SlideDirection.UP
+                                      ? 1
+                                      : -1) *
+                                  dets.velocity.pixelsPerSecond.dy >
+                              0) _close();
+                        }
+                      : null,
+                  onTap: widget.backdropTapClosesPanel ? () => _close() : null,
+                  child: AnimatedBuilder(
+                      animation: _ac,
+                      builder: (context, _) {
+                        return Container(
+                          height: MediaQuery.of(context).size.height,
+                          width: MediaQuery.of(context).size.width,
 
-                        //set color to null so that touch events pass through
-                        //to the body when the panel is closed, otherwise,
-                        //if a color exists, then touch events won't go through
-                        color: _ac.value == 0.0
-                            ? null
-                            : widget.backdropColor.withOpacity(
-                                widget.backdropOpacity * _ac.value),
-                      );
-                    }),
+                          //set color to null so that touch events pass through
+                          //to the body when the panel is closed, otherwise,
+                          //if a color exists, then touch events won't go through
+                          color: _ac.value == 0.0
+                              ? null
+                              : widget.backdropColor.withOpacity(
+                                  widget.backdropOpacity * _ac.value),
+                        );
+                      }),
+                ),
               ),
 
         //the actual sliding part
@@ -651,6 +664,9 @@ class PanelController {
   void _addState(_SlidingUpPanelState panelState) {
     this._panelState = panelState;
   }
+
+  /// Returns the used animationController
+  AnimationController? get animationController => _panelState?._ac;
 
   /// Determine if the panelController is attached to an instance
   /// of the SlidingUpPanel (this property must return true before any other
